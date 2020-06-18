@@ -1,3 +1,5 @@
 .#
-.idea/
 !.gitignore
+.idea/
+assignment1/cs231n/datasets/
+!assignment1/cs231n/datasets/get_datasets.sh

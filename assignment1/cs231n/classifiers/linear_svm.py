@@ -36,6 +36,8 @@ def svm_loss_naive(W, X, y, reg):
             margin = scores[j] - correct_class_score + 1 # note delta = 1
             if margin > 0:
                 loss += margin
+                dW[:, y[i]] -= X[i]
+                dW[:, j] += X[i]
 
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
@@ -54,7 +56,15 @@ def svm_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Every time the margin is grater the 0 and the class is not the correct class,
+    # the gradient at the class is added the X and, and at the correct class is subtracted the X.
+
+    # Right now the gradient is a sum over all training examples, but we want it
+    # to be an average instead so we divide by num_train.
+    dW /= num_train
+
+    # Add regularization to the gradient.
+    dW += reg * 2 * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
@@ -69,7 +79,7 @@ def svm_loss_vectorized(W, X, y, reg):
     Inputs and outputs are the same as svm_loss_naive.
     """
     loss = 0.0
-    dW = np.zeros(W.shape) # initialize the gradient as zero
+    dW = np.zeros(W.shape)  # initialize the gradient as zero
 
     #############################################################################
     # TODO:                                                                     #
@@ -78,7 +88,23 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train = X.shape[0]
+    delta = 1
+
+    # compute score and margins
+    scores = X.dot(W)  # [N,C]
+    correct_class_scores = scores[range(num_train), y]  # [N, ]
+    margins = (scores.T - correct_class_scores).T + delta  # [N, C]
+
+    mask = margins > 0  # [N, C]
+    margins[~mask] = 0  # max
+    margins[range(num_train), y] = 0  # don't include the correct class
+
+    # Add data loss
+    loss += margins.sum() / num_train
+
+    # Add regularization to the loss.
+    loss += reg * np.sum(W * W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -92,8 +118,28 @@ def svm_loss_vectorized(W, X, y, reg):
     # loss.                                                                     #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    num_classes = W.shape[1]
+    num_features = W.shape[0]
 
-    pass
+    # Lets start by saying that for every sample (N) every class (C) is added 1 X.
+    X_per_class = np.repeat(X[:, :, np.newaxis], num_classes, axis=2)  # [N, D, C]
+
+    # Now for every time the wrong class had a margin grater than zero,
+    # we need to subtract one X from the correct class score
+    # NOTE: since we added one X for all classes (even the correct class), we need to subtract one more.
+    #       but since the margin of the true class is always >0, summing over the class dim of the mask
+    #       will give the correct amount of times to subtract X.
+    X_per_class[range(num_train), :, y] -= (mask.sum(axis=1) * X.T).T
+
+    # the grad is zero when the max operation output zero.
+    mask_per_feature = np.repeat(mask[:, np.newaxis, :], num_features, axis=1)  # [N, D, C]
+    X_per_class[~mask_per_feature] = 0
+
+    # compute the mean grad over the samples    
+    dW += X_per_class.sum(axis=0) / num_train  # [D,C]
+
+    # Add regularization to the gradient.
+    dW += reg * 2 * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
