@@ -34,7 +34,11 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = model(X)
+    correct_class_score = scores.gather(1, y.view(-1, 1)).squeeze()
+    loss = correct_class_score.sum()
+    loss.backward()
+    saliency = X.grad.abs().max(axis=1).values
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -76,7 +80,20 @@ def make_fooling_image(X, target_y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    iterations = 100
+    for i in range(iterations):
+        s = model(X_fooling)
+        highst_score_label = s.argmax()
+        if highst_score_label == target_y:
+            break
+        target_class_score = s[0, target_y]
+        print(target_class_score.item())
+        target_class_score.backward()
+        g = X_fooling.grad
+        dX = learning_rate * g / (g ** 2).sum()
+        X += dX
+        X_fooling = X.clone()
+        X_fooling = X_fooling.requires_grad_()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -94,7 +111,14 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     ########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = model(img)
+    target_class_score = scores[0, target_y]
+    reg = l2_reg * (img ** 2).sum()
+    maximization_objective = target_class_score - reg
+    maximization_objective.backward()
+    g = img.grad
+    img.data += learning_rate * g
+    img.grad.data.zero_()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
