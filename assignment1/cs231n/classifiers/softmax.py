@@ -3,6 +3,7 @@ import numpy as np
 from random import shuffle
 from past.builtins import xrange
 
+
 def softmax_loss_naive(W, X, y, reg):
     """
     Softmax loss function, naive implementation (with loops)
@@ -42,7 +43,7 @@ def softmax_loss_naive(W, X, y, reg):
         for c in range(num_classes):
             scores[c] = X[i].dot(W[:, c])
 
-        scores -= scores.max()  #  shift by max for numeric stability
+        scores -= scores.max()  # shift by max for numeric stability
         probs = np.exp(scores) / np.sum(np.exp(scores))  # [C, ]
 
         # add data loss

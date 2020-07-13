@@ -131,9 +131,9 @@ class KNearestNeighbor(object):
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        vv = (X * X).sum(axis=1)   # [n_test, ]
-        vu = X.dot(self.X_train.T) # [n_test, n_train]
-        uu = (self.X_train * self.X_train).sum(axis=1) # [n_train, ]
+        vv = (X * X).sum(axis=1)  # [n_test, ]
+        vu = X.dot(self.X_train.T)  # [n_test, n_train]
+        uu = (self.X_train * self.X_train).sum(axis=1)  # [n_train, ]
 
         dists = ((-2 * vu + uu).T + vv).T
 
