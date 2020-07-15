@@ -171,9 +171,11 @@ def rnn_backward(dh, cache):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+    # get dims
     N, T, H = dh.shape
     _, D = cache[0][0].shape  # x
 
+    # initialize
     dWx, dWh, db = 0, 0, 0
     dx = np.zeros([N, T, D])
 
@@ -454,7 +456,7 @@ def lstm_forward(x, h0, Wx, Wh, b):
     H = h0.shape[1]
 
     h = np.zeros([N, T, H])
-    cache =[]
+    cache = []
 
     # initial states
     prev_h = h0

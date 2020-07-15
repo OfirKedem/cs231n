@@ -5,6 +5,7 @@ import numpy as np
 from .image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
 from scipy.ndimage.filters import gaussian_filter1d
 
+
 def compute_saliency_maps(X, y, model):
     """
     Compute a class saliency map using the model for images X and labels y.
@@ -46,6 +47,7 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     return saliency
 
+
 def make_fooling_image(X, target_y, model):
     """
     Generate a fooling image that is close to X, but that the model classifies
@@ -83,8 +85,8 @@ def make_fooling_image(X, target_y, model):
     iterations = 100
     for i in range(iterations):
         s = model(X_fooling)
-        highst_score_label = s.argmax()
-        if highst_score_label == target_y:
+        highest_score_label = s.argmax()
+        if highest_score_label == target_y:
             break
         target_class_score = s[0, target_y]
         print(target_class_score.item())
@@ -100,6 +102,7 @@ def make_fooling_image(X, target_y, model):
     #                             END OF YOUR CODE                               #
     ##############################################################################
     return X_fooling
+
 
 def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate):
     ########################################################################
@@ -136,6 +139,7 @@ def preprocess(img, size=224):
     ])
     return transform(img)
 
+
 def deprocess(img, should_rescale=True):
     transform = T.Compose([
         T.Lambda(lambda x: x[0]),
@@ -146,10 +150,12 @@ def deprocess(img, should_rescale=True):
     ])
     return transform(img)
 
+
 def rescale(x):
     low, high = x.min(), x.max()
     x_rescaled = (x - low) / (high - low)
     return x_rescaled
+
 
 def blur_image(X, sigma=1):
     X_np = X.cpu().clone().numpy()
@@ -157,6 +163,7 @@ def blur_image(X, sigma=1):
     X_np = gaussian_filter1d(X_np, sigma, axis=3)
     X.copy_(torch.Tensor(X_np).type_as(X))
     return X
+
 
 def jitter(X, ox, oy):
     """
