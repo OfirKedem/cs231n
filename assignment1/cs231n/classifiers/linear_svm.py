@@ -1,7 +1,9 @@
 from builtins import range
 import numpy as np
+import time
 from random import shuffle
 from past.builtins import xrange
+
 
 def svm_loss_naive(W, X, y, reg):
     """
@@ -21,7 +23,7 @@ def svm_loss_naive(W, X, y, reg):
     - loss as single float
     - gradient with respect to weights W; an array of same shape as W
     """
-    dW = np.zeros(W.shape) # initialize the gradient as zero
+    dW = np.zeros(W.shape)  # initialize the gradient as zero
 
     # compute the loss and the gradient
     num_classes = W.shape[1]
@@ -33,9 +35,15 @@ def svm_loss_naive(W, X, y, reg):
         for j in range(num_classes):
             if j == y[i]:
                 continue
-            margin = scores[j] - correct_class_score + 1 # note delta = 1
+            margin = scores[j] - correct_class_score + 1  # note delta = 1
             if margin > 0:
                 loss += margin
+
+                # Every time the margin is grater than 0 and the class is not the correct class,
+                # the gradient of the weight associated with this class, is added the values of X,
+                # and at the gradient of the weights associated with the correct class is subtracted X.
+                dW[:, y[i]] -= X[i]
+                dW[:, j] += X[i]
 
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
@@ -54,12 +62,16 @@ def svm_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Right now the gradient is a sum over all training examples, but we want it
+    # to be an average instead so we divide by num_train.
+    dW /= num_train
+
+    # Add regularization to the gradient.
+    dW += reg * 2 * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    
-    return loss, dW
 
+    return loss, dW
 
 
 def svm_loss_vectorized(W, X, y, reg):
@@ -69,7 +81,7 @@ def svm_loss_vectorized(W, X, y, reg):
     Inputs and outputs are the same as svm_loss_naive.
     """
     loss = 0.0
-    dW = np.zeros(W.shape) # initialize the gradient as zero
+    dW = np.zeros(W.shape)  # initialize the gradient as zero
 
     #############################################################################
     # TODO:                                                                     #
@@ -78,7 +90,23 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train = X.shape[0]
+    delta = 1
+
+    # compute score and margins
+    scores = X.dot(W)  # [N,C]
+    correct_class_scores = scores[range(num_train), y]  # [N, ]
+    margins = (scores.T - correct_class_scores).T + delta  # [N, C]
+
+    mask = margins > 0  # [N, C]
+    margins[~mask] = 0  # max
+    margins[range(num_train), y] = 0  # don't include the correct class
+
+    # Add data loss
+    loss += margins.sum() / num_train
+
+    # Add regularization to the loss.
+    loss += reg * np.sum(W * W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -93,7 +121,13 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    new_mask = mask * 1.0  # [N, C], turn mask to float.
+    new_mask[range(num_train), y] = 0  # don't include the correct class
+    new_mask[range(num_train), y] -= new_mask.sum(axis=1)  # subtract x for every wrong class with margin > 0
+    dW = X.T.dot(new_mask) / num_train
+
+    # Add regularization to the gradient.
+    dW += reg * 2 * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 

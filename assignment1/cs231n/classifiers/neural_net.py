@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
 
+
 class TwoLayerNet(object):
     """
     A two-layer fully-connected neural network. The net has an input dimension of
@@ -70,6 +71,7 @@ class TwoLayerNet(object):
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
         N, D = X.shape
+        C = len(b2)
 
         # Compute the forward pass
         scores = None
@@ -80,7 +82,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        l1 = X.dot(W1) + b1  # [N, H]
+        a1 = np.maximum(0, l1)  # [N, H]
+        scores = a1.dot(W2) + b2  # [N, C]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +102,14 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores -= scores.max()
+        probs = (np.exp(scores).T / np.sum(np.exp(scores), axis=1)).T  # [N, C]
+
+        loss = -1 * np.mean(np.log(probs[range(N), y]), axis=0)
+
+        # add regularization
+        loss += reg * np.sum(W1 * W1)
+        loss += reg * np.sum(W2 * W2)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,7 +122,37 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        one_hot_y = np.zeros([N, C])
+        one_hot_y[range(N), y] = 1
+
+        # score to loss
+        dLdScores = (probs - one_hot_y) / N  # [N ,C]
+
+        # second layer
+        dScoresdW2 = a1  # [N, H]
+        dLdW2 = dScoresdW2.T.dot(dLdScores)  # [H,C]
+        dScoresdb2 = np.ones(N)  # [N, ]
+        dLdb2 = dScoresdb2.dot(dLdScores)  # [C, ]
+
+        # first layer
+        dScoresda1 = W2  # [H,C]
+        da1dl1 = (l1 > 0) * 1  # [N, H]
+        dLdl1 = da1dl1 * dLdScores.dot(dScoresda1.T)  # [N, H]
+
+        dl1dW1 = X  # [N,D]
+        dLdW1 = dl1dW1.T.dot(dLdl1)  # [D, H]
+        dl1db1 = np.ones(N)  # [N, ]
+        dLdb1 = dl1db1.dot(dLdl1)
+
+        # add regularization
+        dLdW1 += reg * 2 * W1
+        dLdW2 += reg * 2 * W2
+
+        # save to grad dict
+        grads['W1'] = dLdW1
+        grads['W2'] = dLdW2
+        grads['b1'] = dLdb1
+        grads['b2'] = dLdb2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -139,7 +180,7 @@ class TwoLayerNet(object):
         - verbose: boolean; if true print progress during optimization.
         """
         num_train = X.shape[0]
-        iterations_per_epoch = max(num_train / batch_size, 1)
+        iterations_per_epoch = max(int(num_train / batch_size), 1)
 
         # Use SGD to optimize the parameters in self.model
         loss_history = []
@@ -156,7 +197,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            idx = np.random.choice(num_train, size=batch_size)
+            X_batch = X[idx]
+            y_batch = y[idx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +215,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b1'] -= learning_rate * grads['b1']
+            self.params['b2'] -= learning_rate * grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -191,9 +237,9 @@ class TwoLayerNet(object):
                 learning_rate *= learning_rate_decay
 
         return {
-          'loss_history': loss_history,
-          'train_acc_history': train_acc_history,
-          'val_acc_history': val_acc_history,
+            'loss_history': loss_history,
+            'train_acc_history': train_acc_history,
+            'val_acc_history': val_acc_history,
         }
 
     def predict(self, X):
@@ -217,8 +263,14 @@ class TwoLayerNet(object):
         # TODO: Implement this function; it should be VERY simple!                #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        W1, b1 = self.params['W1'], self.params['b1']
+        W2, b2 = self.params['W2'], self.params['b2']
 
-        pass
+        l1 = X.dot(W1) + b1  # [N, H]
+        a1 = np.maximum(0, l1)  # [N, H]
+        scores = a1.dot(W2) + b2  # [N, C]
+
+        y_pred = np.argmax(scores, axis=1)  # [N, ]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
