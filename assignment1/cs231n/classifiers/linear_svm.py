@@ -121,7 +121,7 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    new_mask = mask * 1.0  # [N, C], 1 when margin is grater than 0
+    new_mask = mask * 1.0  # [N, C], turn mask to float.
     new_mask[range(num_train), y] = 0  # don't include the correct class
     new_mask[range(num_train), y] -= new_mask.sum(axis=1)  # subtract x for every wrong class with margin > 0
     dW = X.T.dot(new_mask) / num_train
