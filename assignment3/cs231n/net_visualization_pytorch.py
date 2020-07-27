@@ -83,19 +83,25 @@ def make_fooling_image(X, target_y, model):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     iterations = 100
+    fool_count = 0
     for i in range(iterations):
         s = model(X_fooling)
         highest_score_label = s.argmax()
         if highest_score_label == target_y:
-            break
+            print("Fooled!")
+            fool_count += 1
+            if fool_count == 20:
+                break
         target_class_score = s[0, target_y]
-        print(target_class_score.item())
+        print("target class score:", target_class_score.item())
         target_class_score.backward()
         g = X_fooling.grad
         dX = learning_rate * g / (g ** 2).sum()
-        X += dX
-        X_fooling = X.clone()
-        X_fooling = X_fooling.requires_grad_()
+
+        X_fooling = X_fooling.detach() + dX
+        X_fooling.requires_grad = True
+
+    print("Fooled the network in %d iteration" % (i + 1))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################

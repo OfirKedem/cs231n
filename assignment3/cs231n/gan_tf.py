@@ -3,6 +3,7 @@ import tensorflow as tf
 
 NOISE_DIM = 96
 
+
 def leaky_relu(x, alpha=0.01):
     """Compute the leaky ReLU activation function.
     
@@ -16,10 +17,11 @@ def leaky_relu(x, alpha=0.01):
     # TODO: implement leaky ReLU
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    return tf.maximum(x, 0) - tf.maximum(-alpha * x, 0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    
+
+
 def sample_noise(batch_size, dim, seed=None):
     """Generate random uniform noise from -1 to 1.
     
@@ -35,10 +37,11 @@ def sample_noise(batch_size, dim, seed=None):
     # TODO: sample and return noise
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    return tf.random.uniform([batch_size, dim], minval=-1, maxval=1)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    
+
+
 def discriminator(seed=None):
     """Compute discriminator score for a batch of input images.
     
@@ -60,13 +63,18 @@ def discriminator(seed=None):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = tf.keras.Sequential([tf.keras.layers.Dense(256, input_dim=784),
+                                 tf.keras.layers.LeakyReLU(0.01),
+                                 tf.keras.layers.Dense(256),
+                                 tf.keras.layers.LeakyReLU(0.01),
+                                 tf.keras.layers.Dense(1)])
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
     return model
+
 
 def generator(noise_dim=NOISE_DIM, seed=None):
     """Generate images from a random noise vector.
@@ -88,13 +96,19 @@ def generator(noise_dim=NOISE_DIM, seed=None):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = tf.keras.Sequential([tf.keras.layers.Dense(1024, input_dim=noise_dim),
+                                 tf.keras.layers.ReLU(),
+                                 tf.keras.layers.Dense(1024),
+                                 tf.keras.layers.ReLU(),
+                                 tf.keras.layers.Dense(784),
+                                 tf.keras.layers.Activation(tf.nn.tanh)])
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
     return model
+
 
 def discriminator_loss(logits_real, logits_fake):
     """
@@ -110,10 +124,20 @@ def discriminator_loss(logits_real, logits_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    N = len(logits_fake)
+    # loss of real images
+    real_labels = tf.ones(N)
+    real_loss = bce(real_labels, logits_real)
+    # loss of fake images
+    fake_labels = tf.zeros(N)
+    fake_loss = bce(fake_labels, logits_fake)
+    # total loss
+    loss = real_loss + fake_loss
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
+
 
 def generator_loss(logits_fake):
     """
@@ -128,7 +152,10 @@ def generator_loss(logits_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    bce_loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    N = len(logits_fake)
+    true_labels = tf.ones(N)
+    loss = bce_loss(true_labels, logits_fake)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
@@ -150,10 +177,12 @@ def get_solvers(learning_rate=1e-3, beta1=0.5):
     G_solver = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    D_solver = tf.optimizers.Adam(learning_rate=learning_rate, beta_1=beta1)
+    G_solver = tf.optimizers.Adam(learning_rate=learning_rate, beta_1=beta1)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return D_solver, G_solver
+
 
 def ls_discriminator_loss(scores_real, scores_fake):
     """
@@ -169,10 +198,11 @@ def ls_discriminator_loss(scores_real, scores_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    loss = 0.5 * tf.reduce_mean((scores_real - 1) ** 2) + 0.5 * tf.reduce_mean(scores_fake ** 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
+
 
 def ls_generator_loss(scores_fake):
     """
@@ -187,10 +217,11 @@ def ls_generator_loss(scores_fake):
     loss = None
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    loss = 0.5 * tf.reduce_mean((scores_fake - 1) ** 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return loss
+
 
 def dc_discriminator():
     """Compute discriminator score for a batch of input images.
@@ -210,7 +241,17 @@ def dc_discriminator():
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model = tf.keras.Sequential([tf.keras.layers.Reshape((28, 28, 1), input_shape=(28 * 28,)),
+                                 tf.keras.layers.Conv2D(filters=32, kernel_size=5),
+                                 tf.keras.layers.LeakyReLU(alpha=0.01),
+                                 tf.keras.layers.MaxPool2D(pool_size=2, strides=2),
+                                 tf.keras.layers.Conv2D(filters=64, kernel_size=5),
+                                 tf.keras.layers.LeakyReLU(alpha=0.01),
+                                 tf.keras.layers.MaxPool2D(pool_size=2, strides=2),
+                                 tf.keras.layers.Flatten(),
+                                 tf.keras.layers.Dense(4 * 4 * 64),
+                                 tf.keras.layers.LeakyReLU(alpha=0.01),
+                                 tf.keras.layers.Dense(1)])
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -232,16 +273,31 @@ def dc_generator(noise_dim=NOISE_DIM):
     # TODO: implement architecture
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    model.add(tf.keras.layers.Dense(units=1024, input_dim=noise_dim))
+    model.add(tf.keras.layers.ReLU())
+    model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.Dense(7 * 7 * 128))
+    model.add(tf.keras.layers.ReLU())
+    model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.Reshape((7, 7, 128)))
+    model.add(tf.keras.layers.Conv2DTranspose(filters=64, kernel_size=4, strides=2, padding='same'))
+    model.add(tf.keras.layers.ReLU())
+    model.add(tf.keras.layers.BatchNormalization())
+    model.add(tf.keras.layers.Conv2DTranspose(filters=1, kernel_size=4, strides=2, padding='same'))
+    model.add(tf.keras.layers.Activation(tf.nn.tanh))
+    model.add(tf.keras.layers.Flatten())
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     return model
 
 
 # a giant helper function
-def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss,\
+def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss, \
               show_every=250, print_every=20, batch_size=128, num_epochs=10, noise_size=96):
     """Train a GAN for a certain number of epochs.
+
+    Note: a small fix was added by me (the student) because the last batch was not of size batch_size
+    which  cause a bug. the added and modified lines are are marked as A and M respectively .
     
     Inputs:
     - D: Discriminator model
@@ -254,45 +310,49 @@ def run_a_gan(D, G, D_solver, G_solver, discriminator_loss, generator_loss,\
         Nothing
     """
     mnist = MNIST(batch_size=batch_size, shuffle=True)
-    
+
     iter_count = 0
     images = []
     for epoch in range(num_epochs):
+        true_batch_size = batch_size  # A
         for (x, _) in mnist:
+            if x.shape[0] != batch_size:  # A
+                true_batch_size = x.shape[0]  # A
             with tf.GradientTape() as tape:
                 real_data = x
                 logits_real = D(preprocess_img(real_data))
 
-                g_fake_seed = sample_noise(batch_size, noise_size)
+                g_fake_seed = sample_noise(true_batch_size, noise_size)  # M
                 fake_images = G(g_fake_seed)
-                logits_fake = D(tf.reshape(fake_images, [batch_size, 784]))
+                logits_fake = D(tf.reshape(fake_images, [true_batch_size, 784]))  # M
 
                 d_total_error = discriminator_loss(logits_real, logits_fake)
-                d_gradients = tape.gradient(d_total_error, D.trainable_variables)      
+                d_gradients = tape.gradient(d_total_error, D.trainable_variables)
                 D_solver.apply_gradients(zip(d_gradients, D.trainable_variables))
-            
+
             with tf.GradientTape() as tape:
-                g_fake_seed = sample_noise(batch_size, noise_size)
+                g_fake_seed = sample_noise(true_batch_size, noise_size)  # M
                 fake_images = G(g_fake_seed)
 
-                gen_logits_fake = D(tf.reshape(fake_images, [batch_size, 784]))
+                gen_logits_fake = D(tf.reshape(fake_images, [true_batch_size, 784]))  # M
                 g_error = generator_loss(gen_logits_fake)
-                g_gradients = tape.gradient(g_error, G.trainable_variables)      
+                g_gradients = tape.gradient(g_error, G.trainable_variables)
                 G_solver.apply_gradients(zip(g_gradients, G.trainable_variables))
 
             if (iter_count % show_every == 0):
-                print('Epoch: {}, Iter: {}, D: {:.4}, G:{:.4}'.format(epoch, iter_count,d_total_error,g_error))
+                print('Epoch: {}, Iter: {}, D: {:.4}, G:{:.4}'.format(epoch, iter_count, d_total_error, g_error))
                 imgs_numpy = fake_images.cpu().numpy()
                 images.append(imgs_numpy[0:16])
-                
+
             iter_count += 1
-    
+
     # random noise fed into our generator
     z = sample_noise(batch_size, noise_size)
     # generated images
     G_sample = G(z)
-    
+
     return images, G_sample[:16]
+
 
 class MNIST(object):
     def __init__(self, batch_size, shuffle=False):
@@ -305,7 +365,7 @@ class MNIST(object):
         """
         train, _ = tf.keras.datasets.mnist.load_data()
         X, y = train
-        X = X.astype(np.float32)/255
+        X = X.astype(np.float32) / 255
         X = X.reshape((X.shape[0], -1))
         self.X, self.y = X, y
         self.batch_size, self.shuffle = batch_size, shuffle
@@ -315,16 +375,20 @@ class MNIST(object):
         idxs = np.arange(N)
         if self.shuffle:
             np.random.shuffle(idxs)
-        return iter((self.X[i:i+B], self.y[i:i+B]) for i in range(0, N, B)) 
+        return iter((self.X[i:i + B], self.y[i:i + B]) for i in range(0, N, B))
+
 
 def preprocess_img(x):
     return 2 * x - 1.0
 
+
 def deprocess_img(x):
     return (x + 1.0) / 2.0
 
-def rel_error(x,y):
+
+def rel_error(x, y):
     return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
+
 
 def count_params(model):
     """Count the number of parameters in the current TensorFlow graph """
