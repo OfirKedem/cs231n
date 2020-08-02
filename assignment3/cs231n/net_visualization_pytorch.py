@@ -88,10 +88,7 @@ def make_fooling_image(X, target_y, model):
         s = model(X_fooling)
         highest_score_label = s.argmax()
         if highest_score_label == target_y:
-            print("Fooled!")
-            fool_count += 1
-            if fool_count == 20:
-                break
+            break
         target_class_score = s[0, target_y]
         print("target class score:", target_class_score.item())
         target_class_score.backward()
